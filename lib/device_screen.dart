@@ -1,10 +1,32 @@
 import 'dart:async';
 
+import 'package:env_sensor_app/main.dart';
+import 'package:env_sensor_app/widgets/main_tile.dart';
+import 'package:env_sensor_app/widgets/tile_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+/*
+* VBAT
+* CH2O
+* CO2
+* TOCV
+* PM1.0
+* PM2.5
+* PM10
+* CO
+* O3
+* NO2
+*
+* Temperature
+* Humidity
+* Latitude
+* Longitude
+* */
+
 class DeviceScreen extends StatefulWidget {
   DeviceScreen({Key? key, required this.device}) : super(key: key);
+
   // 장치 정보 전달 받기
   final BluetoothDevice device;
 
@@ -16,8 +38,25 @@ class _DeviceScreenState extends State<DeviceScreen> {
   // flutterBlue
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
 
+  Map<String, double> value_map = {
+    'VBAT' : 0,
+    'CH2O' : 0,
+    'CO2' : 0,
+    'TOCV' : 0,
+    'PM1d0' : 0,
+    'PM2d5' : 0,
+    'PM10' : 0,
+    'CO' : 0,
+    'O3' : 0,
+    'NO2' : 0,
+    'latitude': 0,
+    'longitude': 0,
+  };
+
+
   // 연결 상태 표시 문자열
   String stateText = 'Connecting';
+  String myData = '';
 
   // 연결 버튼 문자열
   String connectButtonText = 'Disconnect';
@@ -100,7 +139,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
       stateText = 'Connecting';
     });
 
-    /* 
+    /*
       타임아웃을 15초(15000ms)로 설정 및 autoconnect 해제
        참고로 autoconnect가 true되어있으면 연결이 지연되는 경우가 있음.
      */
@@ -158,11 +197,18 @@ class _DeviceScreenState extends State<DeviceScreen> {
                   notifyDatas[c.uuid.toString()] = List.empty();
                   c.value.listen((value) {
                     // 데이터 읽기 처리!
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     // print('${c.uuid}: $value <- 이건가 보다!!!');
                     // print(value);
-                    String asciiString = String.fromCharCodes(value);
-                    print('${asciiString}');
+                    myData = String.fromCharCodes(value);
+                    // print(myData);
+                    List<String> temp_list = myData.split(',');
+                    if(temp_list.length == 2)
+                      // print('${temp_list[0]} && ${temp_list[1]}');
+                      value_map[temp_list[0]] = (double.parse(temp_list[1]));
+
 
                     setState(() {
                       // 받은 데이터 저장 화면 표시용
@@ -196,42 +242,92 @@ class _DeviceScreenState extends State<DeviceScreen> {
     } catch (e) {}
   }
 
+  int uuuu = 0;
+
   @override
   Widget build(BuildContext context) {
+    // uuuu++;
+    // print(myData);
+    // print(uuuu);
     return Scaffold(
-      appBar: AppBar(
-        /* 장치명 */
-        title: Text(widget.device.name),
-      ),
-      body: Center(
-          child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              disconnect();
+              Navigator.of(context).pop();
+            },
+          ),
+          /* 장치명 */
+          title: Row(
             children: [
-              /* 연결 상태 */
-              Text('$stateText'),
-              /* 연결 및 해제 버튼 */
-              // OutlinedButton(
-              //     onPressed: () {
-              //       if (deviceState == BluetoothDeviceState.connected) {
-              //         /* 연결된 상태라면 연결 해제 */
-              //         disconnect();
-              //       } else if (deviceState ==
-              //           BluetoothDeviceState.disconnected) {
-              //         /* 연결 해재된 상태라면 연결 */
-              //         connect();
-              //       }
-              //     },
-              //     child: Text(connectButtonText)),
+              Text(widget.device.name),
+              Text('vbat(${value_map['VBAT']})'),
+              Text(
+                ' : $stateText',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              )
+              // <- 나중에 연결안되었을 떄 여기 누르면 연결되게 하자 명령어는 connection이다.        <- 연결안되면 빨간색으로 border line써서 누를 수 있게 유도하도록 하자.
             ],
           ),
-
-
-        ],
-      )),
-    );
+          actions: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'Latitude: ${value_map['latitude']}',
+                  style: TextStyle(fontSize: 17),
+                ),
+                Text(
+                  'Longitude: ${value_map['longitude']}',
+                  style: TextStyle(fontSize: 17),
+                ),
+              ],
+            )
+          ],
+        ),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Row(children: [Container(child: Text('d'),)],),
+            Flexible(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  TileWidget(name: 'CH2O',value: value_map['CH2O']!,),
+                  TileWidget(name: 'CO2',value: value_map['CO2']!),
+                  TileWidget(name: 'TVOC',value: value_map['TOCV']!),
+                  TileWidget(name: 'PM1.0',value: value_map['PM1d0']!),
+                  TileWidget(name: 'PM2.5',value: value_map['PM2d5']!),
+                ],
+              ),
+              flex: 1,
+            ),
+            Flexible(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  TileWidget(name: 'PM10',value: value_map['PM10']!),
+                  TileWidget(name: 'CO',value: value_map['CO']!),
+                  TileWidget(name: 'O3',value: value_map['O3']!),
+                  TileWidget(name: 'NO2',value: value_map['NO2']!),
+                ],
+              ),
+              flex: 1,
+            ),
+            // Expanded(
+            //   child: GridView.count(
+            //     crossAxisCount: 7, // 가로 칸 수
+            //     childAspectRatio: 0.9, // 가로/세로 비율
+            //     children: List.generate(
+            //         14, // 총 그리드뷰 아이템 수 (7 x 2)
+            //             (index) => MainTile()),
+            //   ),
+            // )
+          ],
+        ));
   }
 
   /* 각 캐릭터리스틱 정보 표시 위젯 */
@@ -268,17 +364,9 @@ class _DeviceScreenState extends State<DeviceScreen> {
       }
       name += '\t\t\tProperties: $properties\n';
       if (data.isNotEmpty) {
-
         // 받은 데이터 화면에 출력!
         name += '\t\t\t\t$data\n';
-        // print('#######################################');
-        // print(data);
-        // print('#######################################');
       }
-      // print('########################');
-      // print(name);
-      // print('########################');
-
     }
     return Text('dorodongdong : ${name}');
   }
